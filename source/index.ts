@@ -25,16 +25,19 @@ const numPeople = 200;
 const startingInfectionRate = 0.05;
 const personRadius = 2;
 const chanceOfInfection = 0.05;
-const infectionRadius = 1 / 100;
-const healingTime = 600;
+const infectionRadius = 1 / 50;
+const healingTime = 500;
+const chanceOfDeath = 0.001;
+
+const speedMultiplier = 1 / 400;
 
 function generatePerson(): Person {
   return {
     xPosition: Math.random(),
     yPosition: Math.random(),
 
-    xVelocity: Math.random() * 2 - 1,
-    yVelocity: Math.random() * 2 - 1,
+    xVelocity: speedMultiplier * (Math.random() * 2 - 1),
+    yVelocity: speedMultiplier * (Math.random() * 2 - 1),
 
     state: Math.random() < startingInfectionRate ? State.infected : State.susceptible,
     infectionTime: 0,
@@ -50,7 +53,7 @@ function fillStyleForPerson(person: Person): string {
     {state: State.susceptible, style: 'white'},
     {state: State.infected, style: 'red'},
     {state: State.recovered, style: 'green'},
-    {state: State.dead, style: 'black'},
+    {state: State.dead, style: 'rgba(255, 255, 255, 0.25)'},
   ];
 
   const style = styles.find((style) => style.state === person.state);
@@ -87,17 +90,15 @@ function draw(world: World) {
 }
 
 function updatePositions(world: World) {
-  const speedConstant = 500;
-
   world.people.forEach((person) => {
-    const newX = person.xPosition + person.xVelocity / speedConstant;
+    const newX = person.xPosition + person.xVelocity;
     if (0 <= newX && newX <= 1) {
       person.xPosition = newX;
     } else {
       person.xVelocity *= -1;
     }
 
-    const newY = person.yPosition + person.yVelocity / speedConstant;
+    const newY = person.yPosition + person.yVelocity;
     if (0 <= newY && newY <= 1) {
       person.yPosition = newY;
     } else {
@@ -136,11 +137,23 @@ function heal(world: World) {
   });
 }
 
+function kill(world: World) {
+  const infectedPeople = world.people.filter((person) => person.state === State.infected);
+  infectedPeople.forEach((person) => {
+    if (Math.random() < chanceOfDeath) {
+      person.state = State.dead;
+      person.xVelocity = 0;
+      person.yVelocity = 0;
+    }
+  });
+}
+
 function animationFrame() {
   requestAnimationFrame(animationFrame);
   updatePositions(world);
   detectCollisions(world);
   heal(world);
+  kill(world);
   draw(world);
   world.time = world.time + 1;
 }
