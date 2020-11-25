@@ -38,11 +38,7 @@ function generatePerson(): Person {
 }
 
 function initialise(): World {
-  let people: Person[] = [];
-  for (let index = 0; index < numPeople; ++index) {
-    people.push(generatePerson());
-  }
-  return {people};
+  return {people: [...Array(numPeople)].map(generatePerson)};
 }
 
 function fillStyleForPerson(person: Person): string {
