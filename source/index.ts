@@ -13,17 +13,20 @@ interface Person {
   yVelocity: number;
 
   state: State;
+  infectionTime: number;
 }
 
 interface World {
   people: Person[];
+  time: number;
 }
 
 const numPeople = 200;
 const startingInfectionRate = 0.05;
-const personRadius = 4;
+const personRadius = 2;
 const chanceOfInfection = 0.05;
 const infectionRadius = 1 / 100;
+const healingTime = 600;
 
 function generatePerson(): Person {
   return {
@@ -34,11 +37,12 @@ function generatePerson(): Person {
     yVelocity: Math.random() * 2 - 1,
 
     state: Math.random() < startingInfectionRate ? State.infected : State.susceptible,
+    infectionTime: 0,
   };
 }
 
 function initialise(): World {
-  return {people: [...Array(numPeople)].map(generatePerson)};
+  return {people: [...Array(numPeople)].map(generatePerson), time: 0};
 }
 
 function fillStyleForPerson(person: Person): string {
@@ -116,9 +120,19 @@ function detectCollisions(world: World) {
       if (distanceBetween(infectedPerson, susceptiblePerson) < infectionRadius) {
         if (Math.random() < chanceOfInfection) {
           susceptiblePerson.state = State.infected;
+          susceptiblePerson.infectionTime = world.time;
         }
       }
     });
+  });
+}
+
+function heal(world: World) {
+  const infectedPeople = world.people.filter((person) => person.state === State.infected);
+  infectedPeople.forEach((person) => {
+    if (person.infectionTime + healingTime < world.time) {
+      person.state = State.recovered;
+    }
   });
 }
 
@@ -126,7 +140,9 @@ function animationFrame() {
   requestAnimationFrame(animationFrame);
   updatePositions(world);
   detectCollisions(world);
+  heal(world);
   draw(world);
+  world.time = world.time + 1;
 }
 
 let world = initialise();
