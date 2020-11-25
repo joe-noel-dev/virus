@@ -53,7 +53,7 @@ function fillStyleForPerson(person: Person): string {
     {state: State.dead, style: 'black'},
   ];
 
-  let style = styles.find((style) => style.state === person.state);
+  const style = styles.find((style) => style.state === person.state);
   return style ? style.style : '';
 }
 
@@ -74,11 +74,11 @@ function drawPerson(person: Person, context: CanvasRenderingContext2D, width: nu
 }
 
 function draw(world: World) {
-  let canvas = document.getElementById('canvas') as HTMLCanvasElement;
+  const canvas = document.getElementById('canvas') as HTMLCanvasElement;
   canvas.height = canvas.offsetHeight;
   canvas.width = canvas.offsetWidth;
 
-  let context: CanvasRenderingContext2D = canvas.getContext('2d') || new CanvasRenderingContext2D();
+  const context: CanvasRenderingContext2D = canvas.getContext('2d') || new CanvasRenderingContext2D();
 
   context.clearRect(0, 0, canvas.width, canvas.height);
   world.people.forEach((person) => {
@@ -87,17 +87,17 @@ function draw(world: World) {
 }
 
 function updatePositions(world: World) {
-  let speedConstant = 500;
+  const speedConstant = 500;
 
   world.people.forEach((person) => {
-    let newX = person.xPosition + person.xVelocity / speedConstant;
+    const newX = person.xPosition + person.xVelocity / speedConstant;
     if (0 <= newX && newX <= 1) {
       person.xPosition = newX;
     } else {
       person.xVelocity *= -1;
     }
 
-    let newY = person.yPosition + person.yVelocity / speedConstant;
+    const newY = person.yPosition + person.yVelocity / speedConstant;
     if (0 <= newY && newY <= 1) {
       person.yPosition = newY;
     } else {
@@ -145,7 +145,7 @@ function animationFrame() {
   world.time = world.time + 1;
 }
 
-let world = initialise();
+const world = initialise();
 draw(world);
 
 requestAnimationFrame(animationFrame);
