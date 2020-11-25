@@ -2,8 +2,8 @@
     "compilerOptions": {
       "outDir": "./built",
       "allowJs": true,
-      "target": "es5",
-      "sourceMap": true
+      "target": "esnext",
+      "sourceMap": true,
     },
     "include": ["./source/**/*"]
   }
