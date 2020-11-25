@@ -8,7 +8,7 @@ html, body {
 body {
     display: grid;
     grid-template-columns: 3fr 1fr;
-    grid-template-rows: 80% 1fr;
+    grid-template-rows: 4fr 1fr;
     grid-template-areas:
         "canvas controls"
         "graph  graph";
