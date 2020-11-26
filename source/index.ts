@@ -33,6 +33,7 @@ interface World {
   time: number;
   wetMarket: WetMarket;
   lockdown: boolean;
+  maskCoverage: number;
 }
 
 interface LogEntry {
@@ -53,7 +54,6 @@ const infectionDuration = 500;
 const immunityDuration = infectionDuration + 1500;
 const chanceOfDeath = 0.1;
 
-const maskAdherence = 0.2;
 const maskEffectiveness = 0.5;
 
 const speedMultiplier = 1 / 750;
@@ -64,7 +64,8 @@ function randomVelocity(): number {
   return speedMultiplier * (Math.random() * 2 - 1);
 }
 
-function generatePerson(): Person {
+function generatePerson(maskCoverage: number): Person {
+  const respectsAuthority = Math.random();
   return {
     xPosition: Math.random(),
     yPosition: Math.random(),
@@ -72,8 +73,8 @@ function generatePerson(): Person {
     xVelocity: randomVelocity(),
     yVelocity: randomVelocity(),
 
-    mask: Math.random() < maskAdherence,
-    respectsAuthority: Math.random(),
+    mask: 1.0 - respectsAuthority < maskCoverage,
+    respectsAuthority,
     isolating: false,
 
     state: Math.random() < startingInfectionRate ? State.infected : State.susceptible,
@@ -92,8 +93,20 @@ function generateWetMarket(): WetMarket {
   };
 }
 
+function getMaskCoverage(): number {
+  const element = document.getElementById('maskCoverage') as HTMLInputElement;
+  return element ? parseFloat(element.value) / 100 : 0.5;
+}
+
 function initialise(): World {
-  return {people: [...Array(numPeople)].map(generatePerson), time: 0, wetMarket: generateWetMarket(), lockdown: false};
+  const maskCoverage = getMaskCoverage();
+  return {
+    people: [...Array(numPeople)].map(() => generatePerson(maskCoverage)),
+    time: 0,
+    wetMarket: generateWetMarket(),
+    lockdown: false,
+    maskCoverage,
+  };
 }
 
 function reset() {
@@ -289,13 +302,21 @@ function lockdown(world: World) {
   world.people.forEach((person) => {
     if (person.state === State.dead) return;
 
-    person.xVelocity = world.lockdown ? person.xVelocity * person.respectsAuthority : randomVelocity();
-    person.yVelocity = world.lockdown ? person.yVelocity * person.respectsAuthority : randomVelocity();
+    person.xVelocity = world.lockdown ? person.xVelocity * (1 - person.respectsAuthority) : randomVelocity();
+    person.yVelocity = world.lockdown ? person.yVelocity * (1 - person.respectsAuthority) : randomVelocity();
 
     if (world.lockdown && person.respectsAuthority > 0.7) {
       person.xVelocity = 0;
       person.yVelocity = 0;
     }
+  });
+}
+
+function updateMasks() {
+  const maskCoverage = getMaskCoverage();
+  world.people.forEach((person) => {
+    if (person.state === State.dead) return;
+    person.mask = 1.0 - person.respectsAuthority < maskCoverage;
   });
 }
 
@@ -406,3 +427,4 @@ requestAnimationFrame(animationFrame);
 
 document.getElementById('lockdown').onclick = toggleLockdown;
 document.getElementById('reset').onclick = reset;
+document.getElementById('maskCoverage').oninput = updateMasks;

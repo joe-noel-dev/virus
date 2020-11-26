@@ -37,6 +37,15 @@ button {
     margin: 0.5rem 0;
 }
 
+#slider {
+    width: 100%;
+    align-self: center;
+    height: 3rem;
+    border: none;
+    background-color: lightgrey;
+    margin: 0.5rem 0;
+}
+
 #graph {
     grid-area: graph;
 }
