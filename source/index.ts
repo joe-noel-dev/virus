@@ -24,11 +24,20 @@ interface World {
   time: number;
 }
 
-const numPeople = 200;
+interface LogEntry {
+  counts: Map<State, number>;
+  newEntries: Map<State, number>;
+}
+
+interface Log {
+  logs: LogEntry[];
+}
+
+const numPeople = 500;
 const startingInfectionRate = 0.05;
 const personRadius = 4;
-const chanceOfInfection = 0.05;
-const infectionRadius = 1 / 50;
+const chanceOfInfection = 0.02;
+const infectionRadius = 1 / 100;
 const healingTime = 500;
 const chanceOfDeath = 0.002;
 
@@ -57,7 +66,7 @@ function initialise(): World {
   return {people: [...Array(numPeople)].map(generatePerson), time: 0};
 }
 
-function fillStyleForPerson(person: Person): string {
+function colourForState(state: State): string {
   const styles = [
     {state: State.susceptible, style: 'white'},
     {state: State.infected, style: 'yellow'},
@@ -65,7 +74,7 @@ function fillStyleForPerson(person: Person): string {
     {state: State.dead, style: 'red'},
   ];
 
-  const style = styles.find((style) => style.state === person.state);
+  const style = styles.find((style) => style.state === state);
   return style ? style.style : '';
 }
 
@@ -108,7 +117,7 @@ function drawPerson(person: Person, context: CanvasRenderingContext2D, width: nu
   context.beginPath();
   context.ellipse(centre.x, centre.y, personRadius, personRadius, 0, 0, Math.PI * 2);
   context.closePath();
-  context.fillStyle = fillStyleForPerson(person);
+  context.fillStyle = colourForState(person.state);
   context.fill();
 
   if (person.mask) {
@@ -201,6 +210,36 @@ function kill(world: World) {
   });
 }
 
+function drawGraph(log: Log) {
+  const canvas = document.getElementById('graph') as HTMLCanvasElement;
+  canvas.height = canvas.offsetHeight;
+  canvas.width = canvas.offsetWidth;
+
+  const context: CanvasRenderingContext2D = canvas.getContext('2d') || new CanvasRenderingContext2D();
+
+  context.clearRect(0, 0, canvas.width, canvas.height);
+
+  const numPoints = 100;
+  const start = Math.max(0, log.logs.length - numPoints);
+  const displayLogs = log.logs.slice(start);
+  const yMax = 50;
+
+  const states = [State.infected, State.recovered, State.dead];
+  states.forEach((state) => {
+    context.beginPath();
+    displayLogs.forEach((log, index) => {
+      const count = log.newEntries.get(state);
+      context.lineTo((index * canvas.width) / numPoints, canvas.height - (count * canvas.height) / yMax);
+    });
+    context.strokeStyle = colourForState(state);
+    context.stroke();
+  });
+}
+
+const log: Log = {
+  logs: [],
+};
+
 function animationFrame() {
   requestAnimationFrame(animationFrame);
   updatePositions(world);
@@ -208,6 +247,51 @@ function animationFrame() {
   heal(world);
   kill(world);
   draw(world);
+
+  if (world.time % 60 === 0) {
+    const counts = new Map<State, number>();
+    const newEntries = new Map<State, number>();
+    world.people.forEach((person) => {
+      if (!counts.has(person.state)) counts.set(person.state, 0);
+      counts.set(person.state, counts.get(person.state) + 1);
+    });
+
+    if (log.logs.length === 0) {
+      log.logs.push({
+        counts: new Map<State, number>([
+          [State.susceptible, numPeople],
+          [State.infected, 0],
+          [State.recovered, 0],
+          [State.dead, 0],
+        ]),
+        newEntries: new Map<State, number>([
+          [State.susceptible, 0],
+          [State.infected, 0],
+          [State.recovered, 0],
+          [State.dead, 0],
+        ]),
+      });
+    }
+
+    const previousCounts = log.logs[log.logs.length - 1].counts;
+
+    let newRecovered = counts.get(State.recovered) - previousCounts.get(State.recovered);
+    let newDead = counts.get(State.dead) - previousCounts.get(State.dead);
+
+    newRecovered = isNaN(newRecovered) ? 0 : newRecovered;
+    newDead = isNaN(newDead) ? 0 : newDead;
+
+    newEntries.set(
+      State.infected,
+      counts.get(State.infected) - previousCounts.get(State.infected) + newRecovered + newDead
+    );
+    newEntries.set(State.dead, counts.get(State.dead) - previousCounts.get(State.dead));
+    newEntries.set(State.recovered, counts.get(State.recovered) - previousCounts.get(State.recovered));
+
+    log.logs.push({counts, newEntries});
+    drawGraph(log);
+  }
+
   world.time = world.time + 1;
 }
 
