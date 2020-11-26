@@ -34,6 +34,7 @@ interface World {
   wetMarket: WetMarket;
   lockdown: boolean;
   maskCoverage: number;
+  maskEffectiveness: number;
 }
 
 interface LogEntry {
@@ -53,8 +54,6 @@ const infectionRadius = 1 / 100;
 const infectionDuration = 500;
 const immunityDuration = infectionDuration + 1500;
 const chanceOfDeath = 0.1;
-
-const maskEffectiveness = 0.5;
 
 const speedMultiplier = 1 / 750;
 
@@ -98,6 +97,11 @@ function getMaskCoverage(): number {
   return element ? parseFloat(element.value) / 100 : 0.5;
 }
 
+function getMaskEffectiveness(): number {
+  const element = document.getElementById('maskEffectiveness') as HTMLInputElement;
+  return element ? parseFloat(element.value) / 100 : 0.5;
+}
+
 function initialise(): World {
   const maskCoverage = getMaskCoverage();
   return {
@@ -106,6 +110,7 @@ function initialise(): World {
     wetMarket: generateWetMarket(),
     lockdown: false,
     maskCoverage,
+    maskEffectiveness: getMaskEffectiveness(),
   };
 }
 
@@ -243,6 +248,7 @@ function detectCollisions(world: World) {
     susceptiblePeople.forEach((susceptiblePerson) => {
       if (distanceBetween(infectedPerson, susceptiblePerson) < infectionRadius) {
         let myChanceOfInfection = chanceOfInfection;
+        const maskEffectiveness = getMaskEffectiveness();
         if (susceptiblePerson.mask) {
           myChanceOfInfection *= 1 - maskEffectiveness;
         }
