@@ -157,19 +157,9 @@ function convertSize(normalisedSize: Size, canvasSize: Size): Size {
 
 function drawInfectionRing(person: Person, context: CanvasRenderingContext2D, width: number, height: number) {
   let centre = convertPosition({x: person.xPosition, y: person.yPosition}, width, height);
-  context.beginPath();
-  context.ellipse(
-    centre.x,
-    centre.y,
-    infectionRadius * (width - 2 * personRadius),
-    infectionRadius * (height - 2 * personRadius),
-    0,
-    0,
-    Math.PI * 2
-  );
-  context.closePath();
+  let size = convertSize({width: 2 * infectionRadius, height: 2 * infectionRadius}, {width, height});
   context.fillStyle = 'rgba(255, 255, 255, 0.25)';
-  context.fill();
+  context.fillRect(centre.x - size.width / 2, centre.y - size.height / 2, size.width, size.height);
 }
 
 function drawPerson(person: Person, context: CanvasRenderingContext2D, width: number, height: number) {
@@ -187,9 +177,7 @@ function drawPerson(person: Person, context: CanvasRenderingContext2D, width: nu
 
   if (person.mask) {
     context.beginPath();
-    context.moveTo(centre.x - personRadius, centre.y);
-    context.lineTo(centre.x + personRadius, centre.y);
-    context.lineTo(centre.x, centre.y + personRadius);
+    context.rect(centre.x, centre.y - personRadius, personRadius, personRadius);
     context.closePath();
     context.fillStyle = 'blue';
     context.fill();
@@ -235,30 +223,26 @@ function updatePositions(world: World) {
   });
 }
 
-function distanceBetween(personA: Person, personB: Person): number {
-  const xSquared = Math.pow(personB.xPosition - personA.xPosition, 2);
-  const ySquared = Math.pow(personB.yPosition - personA.yPosition, 2);
-  return Math.sqrt(xSquared + ySquared);
-}
-
 function detectCollisions(world: World) {
   const infectedPeople = world.people.filter((person) => person.state === State.infected);
   const susceptiblePeople = world.people.filter((person) => person.state === State.susceptible);
   infectedPeople.forEach((infectedPerson) => {
     susceptiblePeople.forEach((susceptiblePerson) => {
-      if (distanceBetween(infectedPerson, susceptiblePerson) < infectionRadius) {
-        let myChanceOfInfection = chanceOfInfection;
-        const maskEffectiveness = getMaskEffectiveness();
-        if (susceptiblePerson.mask) {
-          myChanceOfInfection *= 1 - maskEffectiveness;
-        }
-        if (infectedPerson.mask) {
-          myChanceOfInfection *= 1 - maskEffectiveness;
-        }
-        if (Math.random() < myChanceOfInfection) {
-          susceptiblePerson.state = State.infected;
-          susceptiblePerson.infectionTime = world.time;
-        }
+      if (Math.abs(infectedPerson.xPosition - susceptiblePerson.xPosition) > infectionRadius) return;
+
+      if (Math.abs(infectedPerson.yPosition - susceptiblePerson.yPosition) > infectionRadius) return;
+
+      let myChanceOfInfection = chanceOfInfection;
+      const maskEffectiveness = getMaskEffectiveness();
+      if (susceptiblePerson.mask) {
+        myChanceOfInfection *= 1 - maskEffectiveness;
+      }
+      if (infectedPerson.mask) {
+        myChanceOfInfection *= 1 - maskEffectiveness;
+      }
+      if (Math.random() < myChanceOfInfection) {
+        susceptiblePerson.state = State.infected;
+        susceptiblePerson.infectionTime = world.time;
       }
     });
   });
