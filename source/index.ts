@@ -45,9 +45,10 @@ interface Log {
 const numPeople = 2000;
 const startingInfectionRate = 0.0;
 const personRadius = 4;
-const chanceOfInfection = 0.005;
+const chanceOfInfection = 0.01;
 const infectionRadius = 1 / 100;
 const infectionDuration = 500;
+const immunityDuration = infectionDuration + 1500;
 const chanceOfDeath = 0.1;
 
 const maskAdherence = 0.2;
@@ -74,7 +75,7 @@ function generatePerson(): Person {
 }
 
 function generateWetMarket(): WetMarket {
-  const size = 0.03;
+  const size = 0.01;
   return {
     xPosition: Math.random() * (1 - size),
     yPosition: Math.random() * (1 - size),
@@ -263,6 +264,15 @@ function market(world: World) {
   });
 }
 
+function immunity(world: World) {
+  const recoveredPeople = world.people.filter((person) => person.state === State.recovered);
+  recoveredPeople.forEach((person) => {
+    if (person.infectionTime + immunityDuration < world.time) {
+      person.state = State.susceptible;
+    }
+  });
+}
+
 function drawGraph(log: Log) {
   const canvas = document.getElementById('graph') as HTMLCanvasElement;
   canvas.height = canvas.offsetHeight;
@@ -275,9 +285,9 @@ function drawGraph(log: Log) {
   const numPoints = 100;
   const start = Math.max(0, log.logs.length - numPoints);
   const displayLogs = log.logs.slice(start);
-  const yMax = 50;
+  const yMax = 100;
 
-  const states = [State.infected, State.recovered, State.dead];
+  const states = [State.infected, State.dead];
   states.forEach((state) => {
     context.beginPath();
     displayLogs.forEach((log, index) => {
@@ -299,6 +309,7 @@ function animationFrame() {
   detectCollisions(world);
   judgement(world);
   market(world);
+  immunity(world);
   draw(world);
 
   if (world.time % 60 === 0) {
