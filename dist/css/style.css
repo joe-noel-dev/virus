@@ -53,3 +53,28 @@ button {
 .total {
     margin: 0.5rem 0;
 }
+
+.swatch {
+    display: inline-block;
+    margin-right: 0.5rem;
+    
+    width: 1rem;
+    height: 1rem;
+    border: 1px solid black;
+}
+
+#susceptible-key {
+    background-color: white;
+}
+
+#infected-key {
+    background-color: yellow;
+}
+
+#recovered-key {
+    background-color: green;
+}
+
+#dead-key {
+    background-color: red;
+}
