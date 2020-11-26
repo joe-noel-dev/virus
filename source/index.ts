@@ -34,15 +34,15 @@ interface Log {
 }
 
 const numPeople = 500;
-const startingInfectionRate = 0.05;
+const startingInfectionRate = 0.1;
 const personRadius = 4;
 const chanceOfInfection = 0.02;
 const infectionRadius = 1 / 100;
 const healingTime = 500;
-const chanceOfDeath = 0.002;
+const chanceOfDeath = 0.0002;
 
 const maskAdherence = 0.5;
-const maskEffectiveness = 0.1;
+const maskEffectiveness = 0.5;
 
 const speedMultiplier = 1 / 1000;
 
