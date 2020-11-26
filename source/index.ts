@@ -49,10 +49,11 @@ interface Log {
 const numPeople = 2000;
 const startingInfectionRate = 0.0;
 const personRadius = 4;
-const chanceOfInfection = 0.01;
+const chanceOfInfection = 0.012;
 const infectionRadius = 1 / 100;
-const infectionDuration = 500;
+const infectionDuration = 750;
 const immunityDuration = infectionDuration + 1500;
+const incubationTime = 0.5 * infectionDuration;
 const chanceOfDeath = 0.1;
 
 const speedMultiplier = 1 / 750;
@@ -163,7 +164,7 @@ function drawInfectionRing(person: Person, context: CanvasRenderingContext2D, wi
 }
 
 function drawPerson(person: Person, context: CanvasRenderingContext2D, width: number, height: number) {
-  if (person.state === State.infected) {
+  if (person.state === State.infected && !person.isolating) {
     drawInfectionRing(person, context, width, height);
   }
 
@@ -224,8 +225,8 @@ function updatePositions(world: World) {
 }
 
 function detectCollisions(world: World) {
-  const infectedPeople = world.people.filter((person) => person.state === State.infected);
-  const susceptiblePeople = world.people.filter((person) => person.state === State.susceptible);
+  const infectedPeople = world.people.filter((person) => person.state === State.infected && !person.isolating);
+  const susceptiblePeople = world.people.filter((person) => person.state === State.susceptible && !person.isolating);
   infectedPeople.forEach((infectedPerson) => {
     susceptiblePeople.forEach((susceptiblePerson) => {
       if (Math.abs(infectedPerson.xPosition - susceptiblePerson.xPosition) > infectionRadius) return;
@@ -251,6 +252,12 @@ function detectCollisions(world: World) {
 function judgement(world: World) {
   const infectedPeople = world.people.filter((person) => person.state === State.infected);
   infectedPeople.forEach((person) => {
+    if (person.infectionTime + incubationTime < world.time) {
+      person.isolating = true;
+      person.xVelocity = 0;
+      person.yVelocity = 0;
+    }
+
     if (person.infectionTime + infectionDuration < world.time) {
       if (Math.random() < chanceOfDeath) {
         person.state = State.dead;
@@ -258,6 +265,9 @@ function judgement(world: World) {
         person.yVelocity = 0;
       } else {
         person.state = State.recovered;
+        person.isolating = false;
+        person.xVelocity = randomVelocity();
+        person.yVelocity = randomVelocity();
       }
     }
   });
