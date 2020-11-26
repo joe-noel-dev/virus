@@ -20,7 +20,7 @@ interface Person {
   infectionTime: number;
 }
 
-interface WetMarket {
+interface Zone {
   xPosition: number;
   yPosition: number;
 
@@ -31,7 +31,8 @@ interface WetMarket {
 interface World {
   people: Person[];
   time: number;
-  wetMarket: WetMarket;
+  wetMarket: Zone;
+  hotspots: Zone[];
   lockdown: boolean;
   maskCoverage: number;
   maskEffectiveness: number;
@@ -82,8 +83,7 @@ function generatePerson(maskCoverage: number): Person {
   };
 }
 
-function generateWetMarket(): WetMarket {
-  const size = 0.01;
+function generateZone(size: number): Zone {
   return {
     xPosition: Math.random() * (1 - size),
     yPosition: Math.random() * (1 - size),
@@ -108,11 +108,20 @@ function initialise(): World {
   return {
     people: [...Array(numPeople)].map(() => generatePerson(maskCoverage)),
     time: 0,
-    wetMarket: generateWetMarket(),
+    wetMarket: generateZone(0.01),
     lockdown: false,
     maskCoverage,
     maskEffectiveness: getMaskEffectiveness(),
+    hotspots: [],
   };
+}
+
+function toggleHotspots() {
+  if (world.hotspots.length) {
+    world.hotspots = [];
+  } else {
+    world.hotspots = [...Array(3)].map(() => generateZone(0.1));
+  }
 }
 
 function reset() {
@@ -185,10 +194,10 @@ function drawPerson(person: Person, context: CanvasRenderingContext2D, width: nu
   }
 }
 
-function drawWetMarket(wetMarket: WetMarket, context: CanvasRenderingContext2D, width: number, height: number) {
-  let position = convertPosition({x: wetMarket.xPosition, y: wetMarket.yPosition}, width, height);
-  let size = convertSize({width: wetMarket.width, height: wetMarket.height}, {width, height});
-  context.fillStyle = 'rgba(255, 10, 10, 0.5)';
+function drawZone(zone: Zone, context: CanvasRenderingContext2D, width: number, height: number, colour: string) {
+  let position = convertPosition({x: zone.xPosition, y: zone.yPosition}, width, height);
+  let size = convertSize({width: zone.width, height: zone.height}, {width, height});
+  context.fillStyle = colour;
   context.fillRect(position.x, position.y, size.width, size.height);
 }
 
@@ -200,22 +209,49 @@ function draw(world: World) {
   const context: CanvasRenderingContext2D = canvas.getContext('2d') || new CanvasRenderingContext2D();
 
   context.clearRect(0, 0, canvas.width, canvas.height);
-  drawWetMarket(world.wetMarket, context, canvas.width, canvas.height);
+  drawZone(world.wetMarket, context, canvas.width, canvas.height, 'rgba(255, 10, 10, 0.5)');
+  world.hotspots.forEach((hotspot) => {
+    drawZone(hotspot, context, canvas.width, canvas.height, 'rgba(10, 10, 255, 0.5)');
+  });
   world.people.forEach((person) => {
     drawPerson(person, context, canvas.width, canvas.height);
   });
 }
 
+function isPositionInZone(zone: Zone, xPosition: number, yPosition: number): boolean {
+  return (
+    zone.xPosition <= xPosition &&
+    xPosition <= zone.xPosition + zone.width &&
+    zone.yPosition <= yPosition &&
+    yPosition <= zone.yPosition + zone.height
+  );
+}
+
 function updatePositions(world: World) {
   world.people.forEach((person) => {
     const newX = person.xPosition + person.xVelocity;
+    const newY = person.yPosition + person.yVelocity;
+
+    world.hotspots.forEach((hotspot) => {
+      if (!isPositionInZone(hotspot, person.xPosition, person.yPosition)) return;
+
+      if (Math.random() < 0.2) return;
+
+      if (!(hotspot.xPosition <= newX && newX <= hotspot.xPosition + hotspot.width)) {
+        person.xVelocity *= -1;
+      }
+
+      if (!(hotspot.yPosition <= newY && newY <= hotspot.yPosition + hotspot.height)) {
+        person.yVelocity *= -1;
+      }
+    });
+
     if (0 <= newX && newX <= 1) {
       person.xPosition = newX;
     } else {
       person.xVelocity *= -1;
     }
 
-    const newY = person.yPosition + person.yVelocity;
     if (0 <= newY && newY <= 1) {
       person.yPosition = newY;
     } else {
@@ -427,4 +463,5 @@ requestAnimationFrame(animationFrame);
 
 document.getElementById('lockdown').onclick = toggleLockdown;
 document.getElementById('reset').onclick = reset;
+document.getElementById('zones').onclick = toggleHotspots;
 document.getElementById('maskCoverage').oninput = updateMasks;
