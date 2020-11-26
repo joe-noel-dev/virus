@@ -33,18 +33,18 @@ interface Log {
   logs: LogEntry[];
 }
 
-const numPeople = 500;
+const numPeople = 2000;
 const startingInfectionRate = 0.1;
 const personRadius = 4;
-const chanceOfInfection = 0.02;
+const chanceOfInfection = 0.005;
 const infectionRadius = 1 / 100;
-const healingTime = 500;
-const chanceOfDeath = 0.0002;
+const infectionDuration = 500;
+const chanceOfDeath = 0.1;
 
-const maskAdherence = 0.5;
-const maskEffectiveness = 0.5;
+const maskAdherence = 0.2;
+const maskEffectiveness = 0.8;
 
-const speedMultiplier = 1 / 1000;
+const speedMultiplier = 1 / 750;
 
 function generatePerson(): Person {
   return {
@@ -190,22 +190,17 @@ function detectCollisions(world: World) {
   });
 }
 
-function heal(world: World) {
+function judgement(world: World) {
   const infectedPeople = world.people.filter((person) => person.state === State.infected);
   infectedPeople.forEach((person) => {
-    if (person.infectionTime + healingTime < world.time) {
-      person.state = State.recovered;
-    }
-  });
-}
-
-function kill(world: World) {
-  const infectedPeople = world.people.filter((person) => person.state === State.infected);
-  infectedPeople.forEach((person) => {
-    if (Math.random() < chanceOfDeath) {
-      person.state = State.dead;
-      person.xVelocity = 0;
-      person.yVelocity = 0;
+    if (person.infectionTime + infectionDuration < world.time) {
+      if (Math.random() < chanceOfDeath) {
+        person.state = State.dead;
+        person.xVelocity = 0;
+        person.yVelocity = 0;
+      } else {
+        person.state = State.recovered;
+      }
     }
   });
 }
@@ -244,8 +239,7 @@ function animationFrame() {
   requestAnimationFrame(animationFrame);
   updatePositions(world);
   detectCollisions(world);
-  heal(world);
-  kill(world);
+  judgement(world);
   draw(world);
 
   if (world.time % 60 === 0) {
