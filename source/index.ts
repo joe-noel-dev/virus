@@ -42,7 +42,7 @@ const infectionDuration = 500;
 const chanceOfDeath = 0.1;
 
 const maskAdherence = 0.2;
-const maskEffectiveness = 0.8;
+const maskEffectiveness = 0.5;
 
 const speedMultiplier = 1 / 750;
 
@@ -269,18 +269,17 @@ function animationFrame() {
 
     const previousCounts = log.logs[log.logs.length - 1].counts;
 
-    let newRecovered = counts.get(State.recovered) - previousCounts.get(State.recovered);
-    let newDead = counts.get(State.dead) - previousCounts.get(State.dead);
+    const get = (count: Map<State, number>, state: State): number => (count.has(state) ? count.get(state) : 0);
 
-    newRecovered = isNaN(newRecovered) ? 0 : newRecovered;
-    newDead = isNaN(newDead) ? 0 : newDead;
+    const newRecovered = get(counts, State.recovered) - get(previousCounts, State.recovered);
+    const newDead = get(counts, State.dead) - get(previousCounts, State.dead);
 
     newEntries.set(
       State.infected,
-      counts.get(State.infected) - previousCounts.get(State.infected) + newRecovered + newDead
+      get(counts, State.infected) - get(previousCounts, State.infected) + newRecovered + newDead
     );
-    newEntries.set(State.dead, counts.get(State.dead) - previousCounts.get(State.dead));
-    newEntries.set(State.recovered, counts.get(State.recovered) - previousCounts.get(State.recovered));
+    newEntries.set(State.dead, get(counts, State.dead) - get(previousCounts, State.dead));
+    newEntries.set(State.recovered, get(counts, State.recovered) - get(previousCounts, State.recovered));
 
     log.logs.push({counts, newEntries});
     drawGraph(log);
