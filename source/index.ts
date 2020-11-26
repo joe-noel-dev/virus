@@ -13,6 +13,7 @@ interface Person {
   yVelocity: number;
 
   mask: boolean;
+  respectsAuthority: number;
   isolating: boolean;
 
   state: State;
@@ -31,6 +32,7 @@ interface World {
   people: Person[];
   time: number;
   wetMarket: WetMarket;
+  lockdown: boolean;
 }
 
 interface LogEntry {
@@ -58,15 +60,20 @@ const speedMultiplier = 1 / 750;
 
 const logSize = 100;
 
+function randomVelocity(): number {
+  return speedMultiplier * (Math.random() * 2 - 1);
+}
+
 function generatePerson(): Person {
   return {
     xPosition: Math.random(),
     yPosition: Math.random(),
 
-    xVelocity: speedMultiplier * (Math.random() * 2 - 1),
-    yVelocity: speedMultiplier * (Math.random() * 2 - 1),
+    xVelocity: randomVelocity(),
+    yVelocity: randomVelocity(),
 
     mask: Math.random() < maskAdherence,
+    respectsAuthority: Math.random(),
     isolating: false,
 
     state: Math.random() < startingInfectionRate ? State.infected : State.susceptible,
@@ -86,7 +93,7 @@ function generateWetMarket(): WetMarket {
 }
 
 function initialise(): World {
-  return {people: [...Array(numPeople)].map(generatePerson), time: 0, wetMarket: generateWetMarket()};
+  return {people: [...Array(numPeople)].map(generatePerson), time: 0, wetMarket: generateWetMarket(), lockdown: false};
 }
 
 function colourForState(state: State): string {
@@ -273,6 +280,25 @@ function immunity(world: World) {
   });
 }
 
+function lockdown(world: World) {
+  world.people.forEach((person) => {
+    if (person.state === State.dead) return;
+
+    person.xVelocity = world.lockdown ? person.xVelocity * person.respectsAuthority : randomVelocity();
+    person.yVelocity = world.lockdown ? person.yVelocity * person.respectsAuthority : randomVelocity();
+
+    if (world.lockdown && person.respectsAuthority > 0.7) {
+      person.xVelocity = 0;
+      person.yVelocity = 0;
+    }
+  });
+}
+
+function toggleLockdown() {
+  world.lockdown = !world.lockdown;
+  lockdown(world);
+}
+
 function drawGraph(log: Log) {
   const canvas = document.getElementById('graph') as HTMLCanvasElement;
   canvas.height = canvas.offsetHeight;
@@ -367,3 +393,5 @@ const world = initialise();
 draw(world);
 
 requestAnimationFrame(animationFrame);
+
+document.getElementById('lockdown').onclick = toggleLockdown;
