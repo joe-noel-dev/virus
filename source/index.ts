@@ -96,6 +96,11 @@ function initialise(): World {
   return {people: [...Array(numPeople)].map(generatePerson), time: 0, wetMarket: generateWetMarket(), lockdown: false};
 }
 
+function reset() {
+  log.logs = [];
+  world = initialise();
+}
+
 function colourForState(state: State): string {
   const styles = [
     {state: State.susceptible, style: 'white'},
@@ -384,14 +389,20 @@ function animationFrame() {
     }
 
     drawGraph(log);
+
+    document.getElementById('susceptible-count').innerHTML = `${get(counts, State.susceptible)}`;
+    document.getElementById('infected-count').innerHTML = `${get(counts, State.infected)}`;
+    document.getElementById('recovered-count').innerHTML = `${get(counts, State.recovered)}`;
+    document.getElementById('dead-count').innerHTML = `${get(counts, State.dead)}`;
   }
 
   world.time = world.time + 1;
 }
 
-const world = initialise();
+var world = initialise();
 draw(world);
 
 requestAnimationFrame(animationFrame);
 
 document.getElementById('lockdown').onclick = toggleLockdown;
+document.getElementById('reset').onclick = reset;

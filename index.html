@@ -10,7 +10,15 @@
   <body>
     <canvas id="canvas"></canvas>
     <div id="controls">
+      <div id="totals">
+        <div class="total">Susceptible: <span id="susceptible-count">0</span></div>
+        <div class="total">Infected: <span id="infected-count">0</span></div>
+        <div class="total">Recovered: <span id="recovered-count">0</span></div>
+        <div class="total">Dead: <span id="dead-count">0</span></div>
+      </div>
+      
       <button id="lockdown">Lockdown</button>
+      <button id="reset">Reset</button>
     </div>
     <canvas id="graph"></div>
     <script src="./built/index.js"></script>
