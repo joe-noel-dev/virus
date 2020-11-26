@@ -19,9 +19,18 @@ interface Person {
   infectionTime: number;
 }
 
+interface WetMarket {
+  xPosition: number;
+  yPosition: number;
+
+  width: number;
+  height: number;
+}
+
 interface World {
   people: Person[];
   time: number;
+  wetMarket: WetMarket;
 }
 
 interface LogEntry {
@@ -34,7 +43,7 @@ interface Log {
 }
 
 const numPeople = 2000;
-const startingInfectionRate = 0.1;
+const startingInfectionRate = 0.0;
 const personRadius = 4;
 const chanceOfInfection = 0.005;
 const infectionRadius = 1 / 100;
@@ -45,6 +54,8 @@ const maskAdherence = 0.2;
 const maskEffectiveness = 0.5;
 
 const speedMultiplier = 1 / 750;
+
+const logSize = 100;
 
 function generatePerson(): Person {
   return {
@@ -62,8 +73,19 @@ function generatePerson(): Person {
   };
 }
 
+function generateWetMarket(): WetMarket {
+  const size = 0.03;
+  return {
+    xPosition: Math.random() * (1 - size),
+    yPosition: Math.random() * (1 - size),
+
+    width: size,
+    height: size,
+  };
+}
+
 function initialise(): World {
-  return {people: [...Array(numPeople)].map(generatePerson), time: 0};
+  return {people: [...Array(numPeople)].map(generatePerson), time: 0, wetMarket: generateWetMarket()};
 }
 
 function colourForState(state: State): string {
@@ -83,10 +105,22 @@ interface XY {
   y: number;
 }
 
+interface Size {
+  width: number;
+  height: number;
+}
+
 function convertPosition(normalisedPosition: XY, width: number, height: number): XY {
   return {
     x: personRadius + normalisedPosition.x * (width - 2 * personRadius),
     y: personRadius + normalisedPosition.y * (height - 2 * personRadius),
+  };
+}
+
+function convertSize(normalisedSize: Size, canvasSize: Size): Size {
+  return {
+    width: normalisedSize.width * canvasSize.width,
+    height: normalisedSize.height * canvasSize.height,
   };
 }
 
@@ -131,6 +165,13 @@ function drawPerson(person: Person, context: CanvasRenderingContext2D, width: nu
   }
 }
 
+function drawWetMarket(wetMarket: WetMarket, context: CanvasRenderingContext2D, width: number, height: number) {
+  let position = convertPosition({x: wetMarket.xPosition, y: wetMarket.yPosition}, width, height);
+  let size = convertSize({width: wetMarket.width, height: wetMarket.height}, {width, height});
+  context.fillStyle = 'rgba(255, 10, 10, 0.5)';
+  context.fillRect(position.x, position.y, size.width, size.height);
+}
+
 function draw(world: World) {
   const canvas = document.getElementById('canvas') as HTMLCanvasElement;
   canvas.height = canvas.offsetHeight;
@@ -139,6 +180,7 @@ function draw(world: World) {
   const context: CanvasRenderingContext2D = canvas.getContext('2d') || new CanvasRenderingContext2D();
 
   context.clearRect(0, 0, canvas.width, canvas.height);
+  drawWetMarket(world.wetMarket, context, canvas.width, canvas.height);
   world.people.forEach((person) => {
     drawPerson(person, context, canvas.width, canvas.height);
   });
@@ -205,6 +247,22 @@ function judgement(world: World) {
   });
 }
 
+function market(world: World) {
+  const wetMarket = world.wetMarket;
+  const susceptiblePeople = world.people.filter((person) => person.state === State.susceptible);
+  susceptiblePeople.forEach((person) => {
+    if (
+      wetMarket.xPosition <= person.xPosition &&
+      person.xPosition <= wetMarket.xPosition + wetMarket.width &&
+      wetMarket.yPosition <= person.yPosition &&
+      person.yPosition <= wetMarket.yPosition + wetMarket.height
+    ) {
+      person.state = State.infected;
+      person.infectionTime = world.time;
+    }
+  });
+}
+
 function drawGraph(log: Log) {
   const canvas = document.getElementById('graph') as HTMLCanvasElement;
   canvas.height = canvas.offsetHeight;
@@ -240,6 +298,7 @@ function animationFrame() {
   updatePositions(world);
   detectCollisions(world);
   judgement(world);
+  market(world);
   draw(world);
 
   if (world.time % 60 === 0) {
@@ -282,6 +341,11 @@ function animationFrame() {
     newEntries.set(State.recovered, get(counts, State.recovered) - get(previousCounts, State.recovered));
 
     log.logs.push({counts, newEntries});
+
+    if (log.logs.length > logSize) {
+      log.logs = log.logs.slice(log.logs.length - logSize);
+    }
+
     drawGraph(log);
   }
 
