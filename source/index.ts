@@ -27,9 +27,9 @@ const personRadius = 2;
 const chanceOfInfection = 0.05;
 const infectionRadius = 1 / 50;
 const healingTime = 500;
-const chanceOfDeath = 0.001;
+const chanceOfDeath = 0.002;
 
-const speedMultiplier = 1 / 400;
+const speedMultiplier = 1 / 1000;
 
 function generatePerson(): Person {
   return {
@@ -51,16 +51,36 @@ function initialise(): World {
 function fillStyleForPerson(person: Person): string {
   const styles = [
     {state: State.susceptible, style: 'white'},
-    {state: State.infected, style: 'red'},
+    {state: State.infected, style: 'yellow'},
     {state: State.recovered, style: 'green'},
-    {state: State.dead, style: 'rgba(255, 255, 255, 0.25)'},
+    {state: State.dead, style: 'red'},
   ];
 
   const style = styles.find((style) => style.state === person.state);
   return style ? style.style : '';
 }
 
+function drawInfectionRing(person: Person, context: CanvasRenderingContext2D, width: number, height: number) {
+  context.beginPath();
+  context.ellipse(
+    personRadius + person.xPosition * (width - 2 * personRadius),
+    personRadius + person.yPosition * (height - 2 * personRadius),
+    infectionRadius * (width - 2 * personRadius),
+    infectionRadius * (height - 2 * personRadius),
+    0,
+    0,
+    Math.PI * 2
+  );
+  context.closePath();
+  context.fillStyle = 'rgba(255, 255, 255, 0.25)';
+  context.fill();
+}
+
 function drawPerson(person: Person, context: CanvasRenderingContext2D, width: number, height: number) {
+  if (person.state === State.infected) {
+    drawInfectionRing(person, context, width, height);
+  }
+
   context.beginPath();
   context.ellipse(
     personRadius + person.xPosition * (width - 2 * personRadius),
@@ -118,11 +138,9 @@ function detectCollisions(world: World) {
   const susceptiblePeople = world.people.filter((person) => person.state === State.susceptible);
   infectedPeople.forEach((infectedPerson) => {
     susceptiblePeople.forEach((susceptiblePerson) => {
-      if (distanceBetween(infectedPerson, susceptiblePerson) < infectionRadius) {
-        if (Math.random() < chanceOfInfection) {
-          susceptiblePerson.state = State.infected;
-          susceptiblePerson.infectionTime = world.time;
-        }
+      if (distanceBetween(infectedPerson, susceptiblePerson) < infectionRadius && Math.random() < chanceOfInfection) {
+        susceptiblePerson.state = State.infected;
+        susceptiblePerson.infectionTime = world.time;
       }
     });
   });
